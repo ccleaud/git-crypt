@@ -1,5 +1,17 @@
+current:
+  * Updated with AGWA's recent work (v0.4)).
+  * Minor improvements for compilation using mingw32.
+  * Corrected error with key migration on Windows OS.
+  * Updated usage documentation.
+  * Updated code to compile with high warning checks.
+
+v0.3-win32 (2013-06-17) ccleaud's changelog:
+  * Ported git-crypt to Windows.
+  * Added details about error when they occur.
+  * Filter and diff are now set as required in .git/config
+
 v0.3 (2013-04-05)
-  * Fix 'git-crypt init' on newer versions of Git.  Previously,
+  * Fix 'git-crypt init' on newer versions of Git. Previously,
     encrypted files were not being automatically decrypted after
     running 'git-crypt init' with recent versions of Git.
   * Allow 'git-crypt init' to be run even if the working tree contains

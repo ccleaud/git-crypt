@@ -287,7 +287,7 @@ int clean (int argc, char** argv)
 	// under deterministic CPA as long as the synthetic IV is derived from a
 	// secure PRF applied to the message.  Since HMAC-SHA1 is a secure PRF, this
 	// encryption scheme is semantically secure under deterministic CPA.
-	// 
+	//
 	// Informally, consider that if a file changes just a tiny bit, the IV will
 	// be completely different, resulting in a completely different ciphertext
 	// that leaks no information about the similarities of the plaintexts.  Also,
@@ -650,12 +650,18 @@ int add_collab (int argc, char** argv)
 
 int rm_collab (int argc, char** argv) // TODO
 {
+	UNREFERENCED_PARAMETER(argc);
+	UNREFERENCED_PARAMETER(argv);
+
 	std::clog << "Error: rm-collab is not yet implemented." << std::endl;
 	return 1;
 }
 
 int ls_collabs (int argc, char** argv) // TODO
 {
+	UNREFERENCED_PARAMETER(argc);
+	UNREFERENCED_PARAMETER(argv);
+
 	// Sketch:
 	// Scan the sub-directories in .git-crypt/keys, outputting something like this:
 	// ====
@@ -676,6 +682,9 @@ int ls_collabs (int argc, char** argv) // TODO
 
 int export_key (int argc, char** argv)
 {
+	UNREFERENCED_PARAMETER(argc);
+	UNREFERENCED_PARAMETER(argv);
+
 	// TODO: provide options to export only certain key versions
 
 	if (argc != 1) {
@@ -756,7 +765,7 @@ int migrate_key (int argc, char** argv)
 			new_key_file_name += ".new";
 
 			if (access(new_key_file_name.c_str(), F_OK) == 0) {
-				std::clog << new_key_file_name << ": File already exists" << std::endl;
+				std::clog << new_key_file_name << ": file already exists" << std::endl;
 				return 1;
 			}
 
@@ -765,9 +774,9 @@ int migrate_key (int argc, char** argv)
 				return 1;
 			}
 
-			if (rename(new_key_file_name.c_str(), key_file_name) == -1) {
+			if (util_rename(new_key_file_name.c_str(), key_file_name) == -1) {
 				std::clog << "Error: " << key_file_name << ": " << strerror(errno) << std::endl;
-				unlink(new_key_file_name.c_str());
+				std::clog << "Manual operation required: rename " << new_key_file_name.c_str() << " to " << key_file_name << std::endl;
 				return 1;
 			}
 		}
@@ -781,6 +790,9 @@ int migrate_key (int argc, char** argv)
 
 int refresh (int argc, char** argv) // TODO: do a force checkout, much like in unlock
 {
+	UNREFERENCED_PARAMETER(argc);
+	UNREFERENCED_PARAMETER(argv);
+
 	std::clog << "Error: refresh is not yet implemented." << std::endl;
 	return 1;
 }

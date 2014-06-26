@@ -21,32 +21,7 @@ See the INSTALL file.
 
 USING GIT-CRYPT
 
-Generate a secret key:
-
-	$ git-crypt keygen /path/to/keyfile
-
-Configure a repository to use encryption:
-
-	$ cd repo
-	$ git-crypt init /path/to/keyfile
-
-Specify files to encrypt by creating a .gitattributes file:
-
-	secretfile filter=git-crypt diff=git-crypt
-	*.key filter=git-crypt diff=git-crypt
-
-Like a .gitignore file, it can match wildcards and should be checked
-into the repository.  Make sure you don't accidentally encrypt the
-.gitattributes file itself!
-
-Cloning a repository with encrypted files:
-
-	$ git clone /path/to/repo
-	$ cd repo
-	$ git-crypt init /path/to/keyfile
-
-That's all you need to do - after running git-crypt init, you can use
-git normally - encryption and decryption happen transparently.
+See the USAGE file.
 
 
 CURRENT STATUS
@@ -100,3 +75,12 @@ git-crypt does not itself provide any authentication.  It assumes that
 either the master copy of your repository is stored securely, or that
 you are using git's existing facilities to ensure integrity (signed tags,
 remembering commit hashes, etc.).
+
+
+MAILING LISTS
+
+To stay abreast of, and provide input to, git-crypt development, consider
+subscribing to one or both of our mailing lists:
+
+Announcements: http://lists.cloudmutt.com/mailman/listinfo/git-crypt-announce
+Discussion:    http://lists.cloudmutt.com/mailman/listinfo/git-crypt-discuss

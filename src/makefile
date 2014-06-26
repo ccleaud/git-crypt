@@ -1,8 +1,7 @@
 CXX := c++
-CXXFLAGS := -Wall -pedantic -Wno-long-long -O2
-LDFLAGS := -lcrypto
+CXXFLAGS := -Wall -pedantic -Wextra -Wno-long-long -Wunreachable-code -Wmissing-declarations -Wswitch-default -fexceptions -Os -march=nocona
+LDFLAGS := -lcrypto -lgdi32 -s
 PREFIX := /usr/local
-
 OBJFILES = git-crypt.o commands.o crypto.o gpg.o key.o util.o
 
 all: git-crypt
@@ -15,7 +14,5 @@ util.o: util.cpp util-unix.cpp util-win32.cpp
 clean:
 	rm -f *.o git-crypt
 
-install:
-	install -m 755 git-crypt $(DESTDIR)$(PREFIX)/bin/
-
 .PHONY: all clean install
+

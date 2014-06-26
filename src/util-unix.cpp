@@ -30,7 +30,6 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <errno.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -276,4 +275,14 @@ bool successful_exit (int status)
 
 static void	init_std_streams_platform ()
 {
+}
+
+mode_t util_umask (mode_t mode)
+{
+	return umask(mode);
+}
+
+int util_rename (const char* from, const char* to)
+{
+	return rename(from, to);
 }
