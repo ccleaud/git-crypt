@@ -1,5 +1,5 @@
 /*
- * Copyright 2012, 2014 Andrew Ayer
+ * Copyright 2014 Andrew Ayer
  *
  * This file is part of git-crypt.
  *
@@ -28,31 +28,60 @@
  * as that of the covered work.
  */
 
-#ifndef GIT_CRYPT_COMMANDS_HPP
-#define GIT_CRYPT_COMMANDS_HPP
+#ifndef GIT_CRYPT_KEY_HPP
+#define GIT_CRYPT_KEY_HPP
 
+#include <map>
+#include <functional>
+#include <stdint.h>
+#include <iosfwd>
 #include <string>
 
-struct Error {
-	std::string	message;
-
-	explicit Error (std::string m) : message(m) { }
+enum {
+	HMAC_KEY_LEN = 64,
+	AES_KEY_LEN = 32
 };
 
-// Plumbing commands:
-int clean (int argc, char** argv);
-int smudge (int argc, char** argv);
-int diff (int argc, char** argv);
-// Public commands:
-int init (int argc, char** argv);
-int unlock (int argc, char** argv);
-int add_collab (int argc, char** argv);
-int rm_collab (int argc, char** argv);
-int ls_collabs (int argc, char** argv);
-int export_key (int argc, char** argv);
-int keygen (int argc, char** argv);
-int migrate_key (int argc, char** argv);
-int refresh (int argc, char** argv);
+struct Key_file {
+public:
+	struct Entry {
+		unsigned char		aes_key[AES_KEY_LEN];
+		unsigned char		hmac_key[HMAC_KEY_LEN];
+
+		void			load (std::istream&);
+		void			store (std::ostream&) const;
+		void			generate ();
+	};
+
+	struct Malformed { }; // exception class
+	struct Incompatible { }; // exception class
+
+	const Entry*			get_latest () const;
+
+	const Entry*			get (uint32_t version) const;
+	void				add (uint32_t version, const Entry&);
+
+	void				load_legacy (std::istream&);
+	void				load (std::istream&);
+	void				store (std::ostream&) const;
+
+	bool				load_from_file (const char* filename);
+	bool				store_to_file (const char* filename) const;
+
+	std::string			store_to_string () const;
+
+	void				generate ();
+
+	bool				is_empty () const { return entries.empty(); }
+	bool				is_filled () const { return !is_empty(); }
+
+	uint32_t			latest () const;
+
+private:
+	typedef std::map<uint32_t, Entry, std::greater<uint32_t> > Map;
+	enum { FORMAT_VERSION = 1 };
+
+	Map				entries;
+};
 
 #endif
-

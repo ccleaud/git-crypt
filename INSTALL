@@ -20,10 +20,3 @@ The Makefile is tailored for g++, but should work with other compilers.
 
 It doesn't matter where you install the git-crypt binary - choose wherever
 is most convenient for you.
-
-
-INSTALLING ON MAC OS X
-
-Using the brew package manager, simply run:
-
-        $ brew install git-crypt

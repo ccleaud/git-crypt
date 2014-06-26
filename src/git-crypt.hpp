@@ -1,5 +1,5 @@
 /*
- * Copyright 2012, 2014 Andrew Ayer
+ * Copyright 2014 Andrew Ayer
  *
  * This file is part of git-crypt.
  *
@@ -28,31 +28,9 @@
  * as that of the covered work.
  */
 
-#ifndef GIT_CRYPT_COMMANDS_HPP
-#define GIT_CRYPT_COMMANDS_HPP
+#ifndef GIT_CRYPT_GIT_CRYPT_HPP
+#define GIT_CRYPT_GIT_CRYPT_HPP
 
-#include <string>
-
-struct Error {
-	std::string	message;
-
-	explicit Error (std::string m) : message(m) { }
-};
-
-// Plumbing commands:
-int clean (int argc, char** argv);
-int smudge (int argc, char** argv);
-int diff (int argc, char** argv);
-// Public commands:
-int init (int argc, char** argv);
-int unlock (int argc, char** argv);
-int add_collab (int argc, char** argv);
-int rm_collab (int argc, char** argv);
-int ls_collabs (int argc, char** argv);
-int export_key (int argc, char** argv);
-int keygen (int argc, char** argv);
-int migrate_key (int argc, char** argv);
-int refresh (int argc, char** argv);
+extern const char*	argv0;	// initialized in main() to argv[0]
 
 #endif
-

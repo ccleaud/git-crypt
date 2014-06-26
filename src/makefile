@@ -1,14 +1,16 @@
 CXX := c++
-CXXFLAGS := -Wall -pedantic -ansi -Wno-long-long -O2
+CXXFLAGS := -Wall -pedantic -Wno-long-long -O2
 LDFLAGS := -lcrypto
 PREFIX := /usr/local
 
-OBJFILES = git-crypt.o commands.o crypto.o util.o
+OBJFILES = git-crypt.o commands.o crypto.o gpg.o key.o util.o
 
 all: git-crypt
 
 git-crypt: $(OBJFILES)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+util.o: util.cpp util-unix.cpp util-win32.cpp
 
 clean:
 	rm -f *.o git-crypt
