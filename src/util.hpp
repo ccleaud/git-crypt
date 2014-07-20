@@ -35,6 +35,7 @@
 #include <ios>
 #include <iosfwd>
 #include <stdint.h>
+#include <sys/types.h>
 #include <fstream>
 #include <vector>
 
@@ -59,23 +60,20 @@ public:
 
 void		mkdir_parent (const std::string& path); // Create parent directories of path, __but not path itself__
 std::string	our_exe_path ();
-int			exec_command (const std::vector<std::string>&);
-int			exec_command (const std::vector<std::string>&, std::ostream& output);
-int			exec_command_with_input (const std::vector<std::string>&, const char* p, size_t len);
+int		exec_command (const std::vector<std::string>&);
+int		exec_command (const std::vector<std::string>&, std::ostream& output);
+int		exec_command_with_input (const std::vector<std::string>&, const char* p, size_t len);
 bool		successful_exit (int status);
+void		touch_file (const std::string&);
 std::string	escape_shell_arg (const std::string&);
 uint32_t	load_be32 (const unsigned char*);
 void		store_be32 (unsigned char*, uint32_t);
 bool		read_be32 (std::istream& in, uint32_t&);
 void		write_be32 (std::ostream& out, uint32_t);
 void		init_std_streams ();
-
-mode_t 		util_umask (mode_t);
-int			util_rename (const char*, const char*);
-
-#ifndef UNREFERENCED_PARAMETER
-#define UNREFERENCED_PARAMETER(P) {(P)=(P);}
-#endif
+mode_t		util_umask (mode_t);
+int		util_rename (const char*, const char*);
+std::vector<std::string> get_directory_contents (const char* path);
 
 #endif
 

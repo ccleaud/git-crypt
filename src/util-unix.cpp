@@ -30,11 +30,15 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/time.h>
 #include <errno.h>
+#include <utime.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <limits.h>
 #include <stdlib.h>
+#include <dirent.h>
 #include <vector>
 #include <string>
 #include <cstring>
@@ -68,14 +72,14 @@ void	temp_fstream::open (std::ios_base::openmode mode)
 	char*			path = &path_buffer[0];
 	std::strcpy(path, tmpdir);
 	std::strcpy(path + tmpdir_len, "/git-crypt.XXXXXX");
-	mode_t			old_umask = umask(0077);
+	mode_t			old_umask = util_umask(0077);
 	int			fd = mkstemp(path);
 	if (fd == -1) {
 		int		mkstemp_errno = errno;
-		umask(old_umask);
+		util_umask(old_umask);
 		throw System_error("mkstemp", "", mkstemp_errno);
 	}
-	umask(old_umask);
+	util_umask(old_umask);
 	std::fstream::open(path, mode);
 	if (!std::fstream::is_open()) {
 		unlink(path);
@@ -273,6 +277,13 @@ bool successful_exit (int status)
 	return status != -1 && WIFEXITED(status) && WEXITSTATUS(status) == 0;
 }
 
+void	touch_file (const std::string& filename)
+{
+	if (utimes(filename.c_str(), NULL) == -1) {
+		throw System_error("utimes", "", errno);
+	}
+}
+
 static void	init_std_streams_platform ()
 {
 }
@@ -285,4 +296,27 @@ mode_t util_umask (mode_t mode)
 int util_rename (const char* from, const char* to)
 {
 	return rename(from, to);
+}
+
+static int dirfilter (const struct dirent* ent)
+{
+	// filter out . and ..
+	return std::strcmp(ent->d_name, ".") != 0 && std::strcmp(ent->d_name, "..") != 0;
+}
+
+std::vector<std::string> get_directory_contents (const char* path)
+{
+	struct dirent**		namelist;
+	int			n = scandir(path, &namelist, dirfilter, alphasort);
+	if (n == -1) {
+		throw System_error("scandir", path, errno);
+	}
+	std::vector<std::string>	contents(n);
+	for (int i = 0; i < n; ++i) {
+		contents[i] = namelist[i]->d_name;
+		free(namelist[i]);
+	}
+	free(namelist);
+
+	return contents;
 }

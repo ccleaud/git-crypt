@@ -33,6 +33,7 @@
 #include <fcntl.h>
 #include <windows.h>
 #include <vector>
+#include <cstring>
 
 std::string System_error::message () const
 {
@@ -320,15 +321,33 @@ bool successful_exit (int status)
 	return status == 0;
 }
 
+void	touch_file (const std::string& filename)
+{
+	HANDLE	fh = CreateFileA(filename.c_str(), FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+	if (fh == INVALID_HANDLE_VALUE) {
+		throw System_error("CreateFileA", filename, GetLastError());
+	}
+	SYSTEMTIME	system_time;
+	GetSystemTime(&system_time);
+	FILETIME	file_time;
+	SystemTimeToFileTime(&system_time, &file_time);
+
+	if (!SetFileTime(fh, NULL, NULL, &file_time)) {
+		DWORD	error = GetLastError();
+		CloseHandle(fh);
+		throw System_error("SetFileTime", filename, error);
+	}
+	CloseHandle(fh);
+}
+
 static void	init_std_streams_platform ()
 {
 	_setmode(_fileno(stdin), _O_BINARY);
 	_setmode(_fileno(stdout), _O_BINARY);
 }
 
-mode_t util_umask (mode_t fmask)
+mode_t util_umask (mode_t mode)
 {
-	UNREFERENCED_PARAMETER(fmask);
 	// Not available in Windows and function not always defined in Win32 environments
 	return 0;
 }
@@ -338,4 +357,32 @@ int util_rename (const char* from, const char* to)
 	// On Windows OS, it is necessary to ensure target file doesn't exist
 	unlink(to);
 	return rename(from, to);
+}
+
+std::vector<std::string> get_directory_contents (const char* path)
+{
+	std::vector<std::string>	filenames;
+	std::string			patt(path);
+	if (!patt.empty() && patt[patt.size() - 1] != '/' && patt[patt.size() - 1] != '\\') {
+		patt.push_back('\\');
+	}
+	patt.push_back('*');
+
+	WIN32_FIND_DATAA		ffd;
+	HANDLE				h = FindFirstFileA(patt.c_str(), &ffd);
+	if (h == INVALID_HANDLE_VALUE) {
+		throw System_error("FindFirstFileA", patt, GetLastError());
+	}
+	do {
+		if (std::strcmp(ffd.cFileName, ".") != 0 && std::strcmp(ffd.cFileName, "..") != 0) {
+			filenames.push_back(ffd.cFileName);
+		}
+	} while (FindNextFileA(h, &ffd) != 0);
+
+	DWORD				err = GetLastError();
+	if (err != ERROR_NO_MORE_FILES) {
+		throw System_error("FileNextFileA", patt, err);
+	}
+	FindClose(h);
+	return filenames;
 }
