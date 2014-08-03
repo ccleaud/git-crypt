@@ -58,6 +58,7 @@ public:
 	void		close ();
 };
 
+
 void		mkdir_parent (const std::string& path); // Create parent directories of path, __but not path itself__
 std::string	our_exe_path ();
 int		exec_command (const std::vector<std::string>&);
@@ -71,7 +72,7 @@ void		store_be32 (unsigned char*, uint32_t);
 bool		read_be32 (std::istream& in, uint32_t&);
 void		write_be32 (std::ostream& out, uint32_t);
 void		init_std_streams ();
-mode_t		util_umask (mode_t);
+int 		create_protected_file(const char *path);
 int		util_rename (const char*, const char*);
 std::vector<std::string> get_directory_contents (const char* path);
 

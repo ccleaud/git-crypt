@@ -31,9 +31,18 @@
 #include <io.h>
 #include <stdio.h>
 #include <fcntl.h>
-#include <windows.h>
 #include <vector>
 #include <cstring>
+
+#define _WIN32_WINNT	0x0500				// Windows 2000 or higher
+#define WINVER			0x0500
+
+#include <windows.h>
+#include <accctrl.h>
+#include <sddl.h>
+#include <aclapi.h>
+#include <lm.h>
+
 
 std::string System_error::message () const
 {
@@ -77,6 +86,10 @@ void	temp_fstream::open (std::ios_base::openmode mode)
 	}
 
 	filename = tmpfilename;
+
+	if (create_protected_file(filename.c_str()) != 0) {
+		throw System_error("create_protected_file", filename, 0);
+	}
 
 	std::fstream::open(filename.c_str(), mode);
 	if (!std::fstream::is_open()) {
@@ -346,12 +359,6 @@ static void	init_std_streams_platform ()
 	_setmode(_fileno(stdout), _O_BINARY);
 }
 
-mode_t util_umask (mode_t mode)
-{
-	// Not available in Windows and function not always defined in Win32 environments
-	return 0;
-}
-
 int util_rename (const char* from, const char* to)
 {
 	// On Windows OS, it is necessary to ensure target file doesn't exist
@@ -385,4 +392,110 @@ std::vector<std::string> get_directory_contents (const char* path)
 	}
 	FindClose(h);
 	return filenames;
+}
+
+/// @brief create a file and set permissions to only one user
+/// @param p_filename full path to object to set permission for
+/// @param p_username username to be given access controls (can be a SID, for instance "S-1-5-11" for "authenticated users")
+/// @param p_mode access modes (one of GENERIC_READ, GENERIC_WRITE, GENERIC_EXECUTE or GENERIC_ALL)
+/// @return 0 in case of success, >0 otherwise (see GetLastError code for more details)
+static int WinCreateProtectedFile(const std::string p_filename, const std::string p_username, int p_mode) {
+	EXPLICIT_ACCESS eAcc;
+	PSID pSid = 0;
+	PACL pDacl = 0;
+	int retVal = 0;
+	PSECURITY_DESCRIPTOR pSD = 0;
+	SECURITY_ATTRIBUTES sa;
+	HANDLE hFile = 0;
+
+	// Create ACE
+	eAcc.grfAccessMode = GRANT_ACCESS;
+	eAcc.grfAccessPermissions = p_mode;
+	eAcc.grfInheritance = OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE;
+	eAcc.Trustee.MultipleTrusteeOperation = NO_MULTIPLE_TRUSTEE;
+	eAcc.Trustee.pMultipleTrustee = 0;
+	eAcc.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
+
+	// Set SID to ACE
+	if (ConvertStringSidToSid(const_cast<LPSTR>(p_username.c_str()), &pSid)) {
+		eAcc.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+		eAcc.Trustee.ptstrName = static_cast<LPSTR>(pSid);
+	} else {
+		SetLastError(0);
+		eAcc.Trustee.TrusteeForm = TRUSTEE_IS_NAME;
+		eAcc.Trustee.ptstrName = const_cast<LPSTR>(p_username.c_str());
+	}
+
+	// Do the job
+	try {
+		// Create a DACL
+		if (SetEntriesInAcl(1, &eAcc, 0, &pDacl) != ERROR_SUCCESS) {
+			throw GetLastError();
+		}
+
+		// Initialize a security descriptor.
+		pSD = static_cast<PSECURITY_DESCRIPTOR>(LocalAlloc(LPTR, SECURITY_DESCRIPTOR_MIN_LENGTH));
+		if (! pSD) {
+			throw GetLastError();
+		}
+
+		if (! InitializeSecurityDescriptor(pSD, SECURITY_DESCRIPTOR_REVISION)) {
+			throw GetLastError();
+		}
+
+		// Add the ACL to the security descriptor.
+		if (! SetSecurityDescriptorDacl(pSD, TRUE /* bDaclPresent flag */, pDacl, FALSE /* not a default DACL */)) {
+			throw GetLastError();
+		}
+
+		// Initialize a security attributes structure.
+		sa.nLength = sizeof (SECURITY_ATTRIBUTES);
+		sa.lpSecurityDescriptor = pSD;
+		sa.bInheritHandle = FALSE;
+
+		// Create the file according to security attributes
+		hFile = CreateFileA(p_filename.c_str() /*static_cast<LPSTR>(p_filename.c_str())*/, GENERIC_ALL, FILE_SHARE_READ, &sa, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+		if (hFile == INVALID_HANDLE_VALUE) {
+			throw GetLastError();
+		}
+	} catch (DWORD e) {
+		retVal = e;
+	}
+
+	// Do cleanup
+	if (hFile != 0) {
+		CloseHandle(hFile);
+		hFile = 0;
+	}
+	if (pSD != 0) {
+		LocalFree(reinterpret_cast<HLOCAL>(pSD));
+		pSD = 0;
+	}
+	if (pSid != 0) {
+		LocalFree(const_cast<HLOCAL>(pSid));
+		pSid = 0;
+	}
+	if (pDacl != 0) {
+		LocalFree(reinterpret_cast<HLOCAL>(pDacl));
+		pDacl = 0;
+	}
+
+	return retVal;
+}
+
+/// @brief create a protected protect a file from being read or written from users other than current one
+/// @param p_filename full path to file to create and set permission for
+/// @return 0 in case of success, >0 otherwise (see GetLastError code for more details)
+int create_protected_file(const char *p_filename)
+{
+	char szTmpUsername[256] = "";
+	DWORD dwTmpUserNameLength = sizeof(szTmpUsername) / sizeof(szTmpUsername[0]);
+	std::string strPath, strUser;
+
+	GetUserName(szTmpUsername, &dwTmpUserNameLength);
+	strPath.assign(p_filename);
+	strUser.assign(szTmpUsername);
+
+	// Give all accesses to current user (RWXD)
+	return WinCreateProtectedFile(strPath, strUser, GENERIC_READ | GENERIC_WRITE | DELETE);
 }

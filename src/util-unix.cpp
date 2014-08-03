@@ -68,26 +68,22 @@ void	temp_fstream::open (std::ios_base::openmode mode)
 		tmpdir = "/tmp";
 		tmpdir_len = 4;
 	}
+
 	std::vector<char>	path_buffer(tmpdir_len + 18);
 	char*			path = &path_buffer[0];
 	std::strcpy(path, tmpdir);
 	std::strcpy(path + tmpdir_len, "/git-crypt.XXXXXX");
-	mode_t			old_umask = util_umask(0077);
-	int			fd = mkstemp(path);
-	if (fd == -1) {
-		int		mkstemp_errno = errno;
-		util_umask(old_umask);
-		throw System_error("mkstemp", "", mkstemp_errno);
+
+	int retCode = create_protected_file(path);
+	if (retCode != 0) {
+		throw System_error("create_protected_file", "", retCode);
 	}
-	util_umask(old_umask);
+
 	std::fstream::open(path, mode);
 	if (!std::fstream::is_open()) {
 		unlink(path);
-		::close(fd);
 		throw System_error("std::fstream::open", path, 0);
 	}
-	unlink(path);
-	::close(fd);
 }
 
 void	temp_fstream::close ()
@@ -288,11 +284,6 @@ static void	init_std_streams_platform ()
 {
 }
 
-mode_t util_umask (mode_t mode)
-{
-	return umask(mode);
-}
-
 int util_rename (const char* from, const char* to)
 {
 	return rename(from, to);
@@ -319,4 +310,35 @@ std::vector<std::string> get_directory_contents (const char* path)
 	free(namelist);
 
 	return contents;
+}
+
+
+/// @brief create a protected protect a file from being read or written from users other than current one
+/// @param p_filename full path to file to create and set permission for
+/// @return 0 in case of success, >0 otherwise (see errno code for more details)
+int create_protected_file(const char *p_filename)
+{
+	mode_t old_umask = umask(0077);
+
+	if (strstr(p_filename, "XXXXXX") != 0) {
+		int fd = mkstemp(const_cast<char *>(p_filename));
+		if (fd == -1) {
+			int		mkstemp_errno = errno;
+			close(fd);
+			umask(old_umask);
+			return mkstemp_errno;
+		}
+	} else {
+		std::ofstream new_file(p_filename, std::fstream::binary);
+		if (!new_file) {
+			int err = errno;
+			new_file.close();
+			umask(old_umask);
+			return err;
+		}
+		new_file.close();
+	}
+
+	umask(old_umask);
+	return 0;
 }

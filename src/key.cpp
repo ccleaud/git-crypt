@@ -34,6 +34,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdint.h>
+#include <unistd.h>
 #include <fstream>
 #include <istream>
 #include <ostream>
@@ -261,14 +262,19 @@ bool		Key_file::load_from_file (const char* key_file_name)
 
 bool		Key_file::store_to_file (const char* key_file_name) const
 {
-	mode_t		old_umask = util_umask(0077); // make sure key file is protected
+	int retCode = create_protected_file(key_file_name);
+	if (retCode != 0) {
+		return false;
+	}
+
 	std::ofstream	key_file_out(key_file_name, std::fstream::binary);
-	util_umask(old_umask);
 	if (!key_file_out) {
 		return false;
 	}
+
 	store(key_file_out);
 	key_file_out.close();
+
 	if (!key_file_out) {
 		return false;
 	}
